@@ -1,5 +1,6 @@
 from django.db import models
 from core.models import Brand
+from core.encryption import encrypt_value, decrypt_value
 
 class Product(models.Model):
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name='products')
@@ -15,3 +16,25 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.brand.name} - {self.title}"
+
+
+class ShopifyStore(models.Model):
+    shop = models.CharField(max_length=255, unique=True)
+    access_token_encrypted = models.TextField(blank=True)
+    scope = models.CharField(max_length=500, blank=True, default='write_products,read_products,read_orders,write_orders')
+    installed_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def set_access_token(self, token_str: str):
+        self.access_token_encrypted = encrypt_value(token_str)
+
+    def get_access_token(self) -> str:
+        return decrypt_value(self.access_token_encrypted)
+
+    def is_valid(self) -> bool:
+        token = self.get_access_token()
+        return bool(token and not token.startswith("your_"))
+
+    def __str__(self):
+        return f"ShopifyStore {self.shop}"
+
