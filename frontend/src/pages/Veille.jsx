@@ -24,7 +24,8 @@ export default function Veille() {
 
   // Filter/Sort states
   const [selectedCompetitor, setSelectedCompetitor] = useState('')
-  const [sortBy, setSortBy] = useState('engagement') // engagement, date
+  const [sortBy, setSortBy] = useState('date') // date, engagement
+  const [daysFilter, setDaysFilter] = useState('15') // 15, 30, all (default: last 15 days)
 
   // Status check for imports
   const [importedStatus, setImportedStatus] = useState({})
@@ -33,7 +34,7 @@ export default function Veille() {
   const [expandedAIReports, setExpandedAIReports] = useState({}) // id -> true/false
 
   // Load competitors & their media
-  const loadData = async (compFilter = selectedCompetitor, order = sortBy) => {
+  const loadData = async (compFilter = selectedCompetitor, order = sortBy, days = daysFilter) => {
     setLoading(true)
     try {
       const comps = await getCompetitors()
@@ -44,6 +45,9 @@ export default function Veille() {
         params.competitor_id = compFilter
       }
       params.sort_by = order === 'date' ? 'date' : 'engagement'
+      if (days && days !== 'all') {
+        params.days = days
+      }
 
       const media = await getCompetitorMedia(params)
       setMediaList(media)
@@ -57,6 +61,32 @@ export default function Veille() {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Auto-sync any competitor whose URLs are older than 6 hours
+  // Instagram CDN signed URLs expire in ~24h, so we keep them fresh automatically
+  useEffect(() => {
+    if (competitors.length === 0) return
+    const SIX_HOURS = 6 * 60 * 60 * 1000
+    const stale = competitors.filter(c => {
+      if (!c.last_sync_at) return true
+      return Date.now() - new Date(c.last_sync_at).getTime() > SIX_HOURS
+    })
+    if (stale.length === 0) return
+    // Sync stale competitors sequentially in the background (no UI blocking)
+    const syncStale = async () => {
+      for (const comp of stale) {
+        try {
+          await triggerCompetitorSync(comp.id)
+        } catch (e) {
+          console.warn(`Auto-sync failed for @${comp.username}:`, e.message)
+        }
+      }
+      // Reload after all background syncs complete
+      await loadData(selectedCompetitor, sortBy)
+    }
+    syncStale()
+  }, [competitors.length]) // Only re-run when the competitors list size changes
+
 
   // Handle adding competitor
   const handleAddCompetitor = async (e) => {
@@ -82,6 +112,7 @@ export default function Veille() {
   const handleDeleteCompetitor = async (id) => {
     if (!window.confirm('Do you really want to stop tracking this competitor?')) return
     try {
+      setErrorMsg('')
       await deleteCompetitor(id)
       // Reset filter if active
       let nextFilter = selectedCompetitor
@@ -92,21 +123,27 @@ export default function Veille() {
       await loadData(nextFilter, sortBy)
     } catch (e) {
       console.error(e)
+      setErrorMsg(e.response?.data?.detail || e.response?.data?.error || 'Failed to delete competitor. Make sure the server is running.')
     }
   }
 
   // Handle sync trigger
   const handleSyncCompetitor = async (id) => {
     setSyncingId(id)
+    setErrorMsg('')
     try {
-      await triggerCompetitorSync(id)
-      // Wait a moment and refresh
-      setTimeout(async () => {
-        await loadData(selectedCompetitor, sortBy)
-        setSyncingId(null)
-      }, 1500)
+      const result = await triggerCompetitorSync(id)
+      // Immediately patch the competitor in state with fresh data from the response
+      if (result?.competitor) {
+        setCompetitors(prev => prev.map(c => c.id === id ? result.competitor : c))
+      }
+      // Reload the full data (competitors + media)
+      await loadData(selectedCompetitor, sortBy)
     } catch (e) {
       console.error(e)
+      const msg = e.response?.data?.detail || e.response?.data?.error || e.message || 'Sync failed.'
+      setErrorMsg(`Sync failed: ${msg}`)
+    } finally {
       setSyncingId(null)
     }
   }
@@ -418,7 +455,7 @@ export default function Veille() {
                 value={selectedCompetitor}
                 onChange={(e) => {
                   setSelectedCompetitor(e.target.value)
-                  loadData(e.target.value, sortBy)
+                  loadData(e.target.value, sortBy, daysFilter)
                 }}
                 style={{
                   border: 'none',
@@ -437,10 +474,35 @@ export default function Veille() {
               </select>
             </div>
 
+            {/* Filter recency (days) */}
+            <div className="flex items-center gap-6" style={{ background: 'var(--bg-card)', padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+              <select
+                value={daysFilter}
+                onChange={(e) => {
+                  const newDays = e.target.value
+                  setDaysFilter(newDays)
+                  loadData(selectedCompetitor, sortBy, newDays)
+                }}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: 'var(--accent)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="15" style={{ background: 'var(--bg-card)' }}>Derniers 15 jours</option>
+                <option value="30" style={{ background: 'var(--bg-card)' }}>Derniers 30 jours</option>
+                <option value="all" style={{ background: 'var(--bg-card)' }}>Tout l'historique</option>
+              </select>
+            </div>
+
             {/* Sort controls */}
             <div className="flex items-center gap-4" style={{ background: 'var(--bg-card)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
               <button
-                onClick={() => { setSortBy('engagement'); loadData(selectedCompetitor, 'engagement'); }}
+                onClick={() => { setSortBy('engagement'); loadData(selectedCompetitor, 'engagement', daysFilter); }}
                 className="btn btn-sm"
                 style={{
                   background: sortBy === 'engagement' ? 'rgba(255,255,255,0.04)' : 'transparent',
@@ -452,7 +514,7 @@ export default function Veille() {
                 Engagement
               </button>
               <button
-                onClick={() => { setSortBy('date'); loadData(selectedCompetitor, 'date'); }}
+                onClick={() => { setSortBy('date'); loadData(selectedCompetitor, 'date', daysFilter); }}
                 className="btn btn-sm"
                 style={{
                   background: sortBy === 'date' ? 'rgba(255,255,255,0.04)' : 'transparent',
@@ -594,7 +656,38 @@ export default function Veille() {
                       alt="Competitor visual"
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        e.target.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%231e293b"/><path d="M150 90c-15 0-30 15-30 30s15 30 30 30 30-15 30-30-15-30-30-30zm0 48c-10 0-18-8-18-18s8-18 18-18 18 8 18 18-8 18-18 18zm0 42c-25 0-75 12-75 37v13h150v-13c0-25-50-37-75-37zm-61 38c6-6 25-13 61-13s55 7 61 13H89z" fill="%2364748b"/><text x="50%" y="80%" dominant-baseline="middle" text-anchor="middle" fill="%2364748b" font-family="sans-serif" font-size="12" font-weight="600">Visual non disponible</text></svg>`
+                        // Step 1: if thumbnail failed, try media_url directly
+                        if (e.target.src !== media.media_url && media.media_url && e.target.src !== e.target.dataset.fallbackUsed) {
+                          e.target.dataset.fallbackUsed = media.media_url
+                          e.target.src = media.media_url
+                          return
+                        }
+                        // Step 2: both CDN URLs expired — show an Instagram-branded
+                        // placeholder with a direct link to the post
+                        const parent = e.target.parentElement
+                        e.target.style.display = 'none'
+                        const existing = parent.querySelector('.ig-fallback')
+                        if (!existing) {
+                          const fallback = document.createElement('a')
+                          fallback.href = media.permalink || '#'
+                          fallback.target = '_blank'
+                          fallback.rel = 'noopener noreferrer'
+                          fallback.className = 'ig-fallback'
+                          fallback.style.cssText = [
+                            'display:flex', 'flex-direction:column', 'align-items:center',
+                            'justify-content:center', 'width:100%', 'height:100%',
+                            'background:linear-gradient(135deg,#1a1a2e,#16213e)',
+                            'color:#a0aec0', 'font-size:11px', 'font-weight:600',
+                            'gap:8px', 'text-decoration:none', 'cursor:pointer',
+                            'transition:background 0.2s'
+                          ].join(';')
+                          fallback.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                            <span style="color:#6366f1">Voir sur Instagram</span>
+                            <span style="font-size:9px;color:#64748b;max-width:120px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${media.competitor_username}</span>
+                          `
+                          parent.appendChild(fallback)
+                        }
                       }}
                     />
 

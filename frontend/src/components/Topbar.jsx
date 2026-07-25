@@ -77,20 +77,6 @@ export default function Topbar({ title, subtitle, onSync, syncing }) {
         {subtitle && <p className="topbar-subtitle">{subtitle}</p>}
       </div>
 
-      {/* Center Section - Global Search */}
-      <div className="topbar-section-center">
-        <div className={`topbar-search ${searchFocused ? 'focused' : ''}`}>
-          <Search className="search-icon" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search products, orders, customers, campaigns, AI agents..."
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-          />
-          <kbd className="search-shortcut">⌘K</kbd>
-        </div>
-      </div>
-
       {/* Right Section - Command Center */}
       <div className="topbar-section-right">
         {/* Meta Connection */}

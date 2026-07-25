@@ -20,6 +20,9 @@ export default defineConfig({
         target: 'http://127.0.0.1:8001',
         changeOrigin: true,
         secure: false,
+        // Rewrite the cookie domain so the browser keeps the csrftoken cookie
+        // on localhost instead of 127.0.0.1
+        cookieDomainRewrite: 'localhost',
       },
     },
 

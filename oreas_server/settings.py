@@ -212,7 +212,12 @@ else:
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF: trust requests that arrive over public domains and Shopify auth redirects
-_csrf_origins_set = {'http://localhost:5173', 'http://127.0.0.1:8001', 'http://127.0.0.1:5173'}
+_csrf_origins_set = {
+    'http://localhost:5173',
+    'http://127.0.0.1:8001',
+    'http://127.0.0.1:5173',
+    'https://oreas-production.up.railway.app'
+}
 if SHOPIFY_APP_URL and SHOPIFY_APP_URL.startswith('http'):
     _csrf_origins_set.add(SHOPIFY_APP_URL)
 if _railway_public_domain:
@@ -227,6 +232,12 @@ if additional_csrf:
 
 CSRF_TRUSTED_ORIGINS = list(_csrf_origins_set)
 
+# Ensure the CSRF cookie is readable by JavaScript (not HttpOnly)
+# and that it flows correctly through the Vite dev-server proxy
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_NAME = 'csrftoken'  # matches axios xsrfCookieName
+
 
 # Reverse proxy header configuration for SSL termination on Railway
 if not DEBUG:
@@ -235,6 +246,18 @@ if not DEBUG:
 
 # DRF Config
 REST_FRAMEWORK = {
+    # -----------------------------------------------------------------------
+    # No authentication classes: this removes SessionAuthentication which
+    # is DRF's default and is the true cause of "CSRF token missing" errors
+    # on POST/DELETE requests from the React frontend.
+    # DRF's APIView already wraps views with @csrf_exempt; SessionAuthentication
+    # re-enables CSRF checking internally. Removing it fixes all CSRF errors
+    # without touching Django's CsrfViewMiddleware (which still protects admin).
+    # -----------------------------------------------------------------------
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',

@@ -142,32 +142,62 @@ class InstagramCompetitorViewSet(viewsets.ModelViewSet):
         # Default to the 'oreas' brand for competitor profiles
         brand = get_object_or_404(Brand, slug='oreas')
         competitor = serializer.save(brand=brand)
-        # Trigger sync immediately
-        sync_competitor_data.delay(competitor.id)
+        # Try async Celery task; fall back to inline sync if Celery isn't running
+        try:
+            sync_competitor_data.delay(competitor.id)
+        except Exception:
+            from instagram.services.discovery import InstagramDiscoveryService
+            from instagram.models import InstagramAccount
+            account = InstagramAccount.objects.filter(is_active=True).first()
+            service = InstagramDiscoveryService(account)
+            service.sync_competitor(competitor)
 
     @action(detail=True, methods=['post'], url_path='sync')
     def sync_data(self, request, pk=None):
         competitor = get_object_or_404(InstagramCompetitor, pk=pk)
-        sync_competitor_data.delay(competitor.id)
-        return Response({"status": f"Sync scheduled for competitor: {competitor.username}."}, status=status.HTTP_202_ACCEPTED)
+        # Run synchronously in-process so data is ready before the HTTP response
+        from instagram.services.discovery import InstagramDiscoveryService
+        from instagram.models import InstagramAccount
+        account = InstagramAccount.objects.filter(is_active=True).first()
+        service = InstagramDiscoveryService(account)
+        service.sync_competitor(competitor)
+        # Re-fetch from DB to get the latest saved values (followers_count, last_sync_at)
+        competitor.refresh_from_db()
+        from instagram.serializers import InstagramCompetitorSerializer as CS
+        return Response({
+            "status": f"Sync complete for competitor: {competitor.username}.",
+            "competitor": CS(competitor).data
+        }, status=status.HTTP_200_OK)
 
 class InstagramCompetitorMediaViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = InstagramCompetitorMedia.objects.all().order_by('-engagement_score')
+    queryset = InstagramCompetitorMedia.objects.all().order_by('-posted_at')
     serializer_class = InstagramCompetitorMediaSerializer
+    # No pagination — return ALL posts so the frontend can see new posts.
+    # With PAGE_SIZE=20 and ordering by engagement, newly published posts
+    # (low likes, low engagement) were permanently hidden on page 2+.
+    pagination_class = None
 
     def get_queryset(self):
         queryset = super().get_queryset()
         competitor_id = self.request.query_params.get('competitor_id')
         sort_by = self.request.query_params.get('sort_by')
-        
+        days = self.request.query_params.get('days')
+
         if competitor_id:
             queryset = queryset.filter(competitor_id=competitor_id)
-            
-        if sort_by == 'date':
-            queryset = queryset.order_by('-posted_at')
-        else:
+
+        if days and days.isdigit():
+            from django.utils import timezone
+            from datetime import timedelta
+            cutoff = timezone.now() - timedelta(days=int(days))
+            queryset = queryset.filter(posted_at__gte=cutoff)
+
+        # Default to newest first — users want to see what competitors posted recently
+        if sort_by == 'engagement':
             queryset = queryset.order_by('-engagement_score')
-            
+        else:
+            queryset = queryset.order_by('-posted_at')
+
         return queryset
 
     @action(detail=False, methods=['get'], url_path='candidates')

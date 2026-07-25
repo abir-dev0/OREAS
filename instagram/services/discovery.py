@@ -76,7 +76,7 @@ class InstagramDiscoveryService:
         if account:
             self.access_token = account.get_access_token()
             self.ig_id = account.instagram_business_account_id
-            self.is_mock = self.ig_id.startswith("mock_") or self.access_token.startswith("IGAA")
+            self.is_mock = self.ig_id.startswith("mock_")
         else:
             self.access_token = None
             self.ig_id = None
@@ -100,7 +100,9 @@ class InstagramDiscoveryService:
         # Meta Instagram Graph API Business Discovery request
         url = f"https://graph.facebook.com/v18.0/{self.ig_id}"
         params = {
-            "fields": f"business_discovery.username({competitor.username}){{followers_count,media_count,media{{id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count}}}}",
+            # .limit(50): request up to 50 most recent posts so we don't miss new content.
+            # Default without limit is only 12 posts, meaning new posts get missed on each sync.
+            "fields": f"business_discovery.username({competitor.username}){{followers_count,media_count,media.limit(50){{id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count}}}}",
             "access_token": self.access_token
         }
         

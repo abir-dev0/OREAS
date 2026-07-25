@@ -3,7 +3,31 @@ import axios from 'axios'
 
 const BASE = '/api'
 
-const api = axios.create({ baseURL: BASE, timeout: 30000 })
+// Helper: read a cookie value by name (for Django CSRF token)
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'))
+  return match ? decodeURIComponent(match[2]) : null
+}
+
+const api = axios.create({
+  baseURL: BASE,
+  timeout: 30000,
+  withCredentials: true,         // send cookies on cross-origin requests (dev tunnels, etc.)
+  xsrfCookieName: 'csrftoken',  // Django's default CSRF cookie name
+  xsrfHeaderName: 'X-CSRFToken', // Django's expected CSRF header
+})
+
+// Interceptor: attach the CSRF token on every state-mutating request
+api.interceptors.request.use((config) => {
+  const method = (config.method || '').toLowerCase()
+  if (['post', 'put', 'patch', 'delete'].includes(method)) {
+    const token = getCookie('csrftoken')
+    if (token) {
+      config.headers['X-CSRFToken'] = token
+    }
+  }
+  return config
+})
 
 const fallback = (data) => Promise.resolve({ data })
 
@@ -347,26 +371,17 @@ export async function addCompetitor(username) {
 }
 
 export async function deleteCompetitor(id) {
-  try {
-    await api.delete(`/instagram/competitors/${id}/`)
-    return true
-  } catch (e) {
-    console.warn('API deleteCompetitor failed:', e.message)
-    MOCK.competitors = MOCK.competitors.filter(c => c.id !== id)
-    return true
-  }
+  await api.delete(`/instagram/competitors/${id}/`)
+  return true
 }
 
 export async function triggerCompetitorSync(id) {
-  try {
-    const r = await api.post(`/instagram/competitors/${id}/sync/`, null, {
-      timeout: 60000 // 60s timeout for competitor sync
-    })
-    return r.data
-  } catch (e) {
-    console.warn('API triggerCompetitorSync failed:', e.message)
-    return { status: 'Sync scheduled' }
-  }
+  // No try/catch: if this fails, the error propagates to handleSyncCompetitor
+  // which shows it to the user instead of silently returning stale data
+  const r = await api.post(`/instagram/competitors/${id}/sync/`, null, {
+    timeout: 60000 // 60s — sync runs inline on the backend
+  })
+  return r.data
 }
 
 export async function getCompetitorMedia(params = {}) {
