@@ -26,5 +26,6 @@ RUN SECRET_KEY=build-time-dummy-secret-key DB_ENGINE=sqlite python manage.py col
 
 EXPOSE 8000
 
-# Production startup command using Gunicorn (Railway injects $PORT at runtime)
-CMD gunicorn oreas_server.wsgi:application --bind 0.0.0.0:${PORT:-8000}
+# Run DB migrations then start Gunicorn (Railway injects $PORT at runtime)
+# migrate runs every deploy — idempotent, only applies new migrations
+CMD python manage.py migrate --noinput && gunicorn oreas_server.wsgi:application --bind 0.0.0.0:${PORT:-8000}
