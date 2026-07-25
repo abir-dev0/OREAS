@@ -19,43 +19,6 @@ from products.services.shopify_oauth import (
 
 logger = logging.getLogger(__name__)
 
-class ShopifyDebugTokenView(APIView):
-    """
-    TEMPORARY debug endpoint to retrieve decrypted Shopify access token.
-    Protected by DEBUG_SECRET env var. Remove after retrieving token.
-    GET /api/products/debug-token/?shop={shop}&secret={DEBUG_SECRET}
-    """
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        import os
-        expected_secret = os.getenv('DEBUG_SECRET', '')
-        provided_secret = request.query_params.get('secret', '')
-
-        # Require a secret param to prevent public access
-        if not expected_secret or provided_secret != expected_secret:
-            return JsonResponse({"error": "Unauthorized"}, status=403)
-
-        shop = request.query_params.get('shop', '')
-        if shop:
-            shop = clean_shop_domain(shop)
-            stores = ShopifyStore.objects.filter(shop=shop)
-        else:
-            stores = ShopifyStore.objects.all()
-
-        result = []
-        for s in stores:
-            token = s.get_access_token()
-            logger.warning(f"[DEBUG] Shop={s.shop} access_token={token}")
-            result.append({
-                "shop": s.shop,
-                "access_token": token,
-                "scope": s.scope,
-                "installed_at": str(s.installed_at),
-            })
-
-        return JsonResponse({"stores": result}, status=200)
-
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Product.objects.all().order_by('-created_at')
