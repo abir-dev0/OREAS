@@ -7,8 +7,8 @@ from rest_framework.permissions import AllowAny
 from django.shortcuts import redirect
 from django.http import HttpResponseRedirect, JsonResponse
 from django.conf import settings
-from products.models import Product, ShopifyStore
-from instagram.serializers import ProductSerializer
+from products.models import Product, ShopifyStore, ShopifyCustomer
+from instagram.serializers import ProductSerializer, ShopifyCustomerSerializer
 from products.services.shopify_oauth import (
     clean_shop_domain,
     verify_shopify_hmac,
@@ -16,6 +16,7 @@ from products.services.shopify_oauth import (
     build_shopify_authorization_url,
     exchange_code_for_access_token
 )
+from products.services.shopify_sync import sync_products, sync_orders, sync_customers
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,72 @@ logger = logging.getLogger(__name__)
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Product.objects.all().order_by('-created_at')
     serializer_class = ProductSerializer
+
+class ShopifyCustomerViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ShopifyCustomer.objects.all().order_by('-total_spent')
+    serializer_class = ShopifyCustomerSerializer
+
+class ShopifySyncCustomersView(APIView):
+    """
+    POST /api/products/sync-customers/
+    Pulls all customers from Shopify Admin API and upserts them locally.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        shop = request.data.get('shop') or clean_shop_domain(
+            getattr(settings, 'SHOPIFY_STORE_URL', '')
+        )
+        try:
+            result = sync_customers(shop=shop or None)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"sync_customers failed: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class ShopifySyncProductsView(APIView):
+    """
+    POST /api/products/sync-products/
+    Pulls all products from Shopify Admin API and upserts them locally.
+    Optional body: { "shop": "yourstore.myshopify.com" }
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        shop = request.data.get('shop') or clean_shop_domain(
+            getattr(settings, 'SHOPIFY_STORE_URL', '')
+        )
+        try:
+            result = sync_products(shop=shop or None)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"sync_products failed: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ShopifySyncOrdersView(APIView):
+    """
+    POST /api/products/sync-orders/
+    Pulls all orders from Shopify Admin API and upserts them locally.
+    Optional body: { "shop": "yourstore.myshopify.com", "status": "any", "limit": 250 }
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        shop = request.data.get('shop') or clean_shop_domain(
+            getattr(settings, 'SHOPIFY_STORE_URL', '')
+        )
+        order_status = request.data.get('status', 'any')
+        limit = int(request.data.get('limit', 250))
+        try:
+            result = sync_orders(shop=shop or None, status=order_status, limit=limit)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"sync_orders failed: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ShopifyAppLaunchView(APIView):
     """
@@ -125,6 +192,12 @@ class ShopifyCallbackView(APIView):
         # 3. Exchange authorization code for permanent Admin API access token
         try:
             exchange_code_for_access_token(clean_shop, code)
+            # Auto-sync products and orders upon successful token exchange
+            try:
+                sync_products(shop=clean_shop)
+                sync_orders(shop=clean_shop)
+            except Exception as sync_err:
+                logger.warning(f"Initial post-OAuth sync warning for {clean_shop}: {sync_err}")
         except Exception as e:
             logger.error(f"Token exchange failed for shop {clean_shop}: {e}")
             return Response({

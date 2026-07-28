@@ -847,7 +847,6 @@ body {
 }
 
 .card:hover {
-  border-color: var(--accent);
   box-shadow: var(--shadow-md);
 }
 
@@ -856,7 +855,6 @@ body {
   will-change: transform;
 }
 .card-lift:hover {
-  border-color: var(--accent);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
@@ -923,7 +921,6 @@ body {
 }
 
 .kpi-tile:hover {
-  border-color: var(--accent);
   box-shadow: var(--shadow-md);
 }
 
@@ -1241,7 +1238,6 @@ tbody td {
 }
 
 .media-card:hover {
-  border-color: var(--accent);
   box-shadow: var(--shadow-lg);
   transform: translateY(-4px);
 }

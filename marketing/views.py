@@ -11,13 +11,36 @@ from core.models import Brand
 from products.models import Product
 from marketing.models import (
     MetaAdAccount, ProductTest, MetaAdCreative, 
-    MetaCampaign, MetaAdSet, MetaAd, MetaAdPerformanceInsight
+    MetaCampaign, MetaAdSet, MetaAd, MetaAdPerformanceInsight, MarketingOrder
 )
 from marketing.serializers import (
     MetaAdAccountSerializer, ProductTestSerializer, MetaAdCreativeSerializer,
-    MetaCampaignSerializer, MetaAdSetSerializer, MetaAdSerializer, MetaAdPerformanceInsightSerializer
+    MetaCampaignSerializer, MetaAdSetSerializer, MetaAdSerializer,
+    MetaAdPerformanceInsightSerializer, MarketingOrderSerializer
 )
 from marketing.tasks import sync_ad_account_data
+
+
+class MarketingOrderViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = MarketingOrderSerializer
+
+    def get_queryset(self):
+        qs = MarketingOrder.objects.select_related('product').order_by('-created_at')
+        shopify_status = self.request.query_params.get('shopify_status')
+        delivery_status = self.request.query_params.get('delivery_status')
+        call_center_status = self.request.query_params.get('call_center_status')
+        search = self.request.query_params.get('search')
+        if shopify_status:
+            qs = qs.filter(shopify_status=shopify_status)
+        if delivery_status:
+            qs = qs.filter(delivery_status=delivery_status)
+        if call_center_status:
+            qs = qs.filter(call_center_status=call_center_status)
+        if search:
+            qs = qs.filter(order_id__icontains=search) | qs.filter(product__title__icontains=search)
+        return qs
+
+
 
 class ProductTestViewSet(viewsets.ModelViewSet):
     queryset = ProductTest.objects.all().order_by('-created_at')

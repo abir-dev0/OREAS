@@ -139,131 +139,144 @@ export default function Analyses() {
     <>
       <Topbar title="Analyses Prédictives" subtitle="Cartographie sémantique des intentions d'achat client" />
       <div className="page-body">
-        
-        {/* AI Insight banner at top */}
-        <div className="ai-insight-box">
-          <Sparkles size={16} color="#3B82F6" style={{ flexShrink: 0, marginTop: 2 }} />
-          <div>
-            <div className="ai-insight-title">Rapport Intention Sémantique</div>
-            <div className="ai-insight-text">{aiInsight}</div>
-          </div>
-        </div>
-
-        <div className="two-col">
-          {/* Bar Chart — Signal Volumes */}
-          <div className="card fade-in">
-            <div className="card-title">Volume Sémantique Global</div>
-            <div className="chart-wrap">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={intentData} barSize={24} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} />
-                  <Tooltip content={<CUSTOM_TOOLTIP />} />
-                  <Bar dataKey="val" name="Occurrences" radius={[4, 4, 0, 0]}>
-                    {intentData.map((e, idx) => <Cell key={idx} fill={e.fill} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+        {loading ? (
+          <>
+            <div className="skeleton" style={{ height: 80, borderRadius: 'var(--radius-xl)', marginBottom: 'var(--space-6)' }} />
+            <div className="two-col">
+              <div className="skeleton" style={{ height: 320, borderRadius: 'var(--radius-xl)' }} />
+              <div className="skeleton" style={{ height: 320, borderRadius: 'var(--radius-xl)' }} />
             </div>
-          </div>
-
-          {/* Radar Chart */}
-          <div className="card fade-in">
-            <div className="card-title">Profil Intention Produit</div>
-            <div className="chart-wrap">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
-                  <PolarGrid stroke="#E6EAF2" />
-                  <PolarAngleAxis dataKey="signal" tick={{ fontSize: 12, fill: '#6B7280' }} />
-                  <Radar name="Intensité" dataKey="A" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.06} strokeWidth={1.5} />
-                  <Tooltip content={<CUSTOM_TOOLTIP />} />
-                </RadarChart>
-              </ResponsiveContainer>
+            <div className="skeleton" style={{ height: 250, borderRadius: 'var(--radius-xl)' }} />
+            <div className="skeleton" style={{ height: 400, borderRadius: 'var(--radius-xl)' }} />
+          </>
+        ) : (
+          <>
+            {/* AI Insight banner at top */}
+            <div className="ai-insight-box">
+              <Sparkles size={16} color="#3B82F6" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <div className="ai-insight-title">Rapport Intention Sémantique</div>
+                <div className="ai-insight-text">{aiInsight}</div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Weekly Trend */}
-        <div className="card fade-in">
-          <div className="card-title">Évolution Tendance Hebdomadaire</div>
-          <div className="chart-wrap" style={{ height: 200 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyData} barGap={4} barSize={6} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} />
-                <YAxis tickLine={false} axisLine={false} />
-                <Tooltip content={<CUSTOM_TOOLTIP />} />
-                <Bar dataKey="prix" name="Prix" fill="#3B82F6" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="dispo" name="Stock/Disp" fill="#6B7280" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="livraison" name="Livraison" fill="#9CA3AF" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="plaintes" name="Plaintes" fill="#EF4444" radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+            <div className="two-col">
+              {/* Bar Chart — Signal Volumes */}
+              <div className="card fade-in">
+                <div className="card-title">Volume Sémantique Global</div>
+                <div className="chart-wrap">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={intentData} barSize={24} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                      <YAxis tickLine={false} axisLine={false} />
+                      <Tooltip content={<CUSTOM_TOOLTIP />} />
+                      <Bar dataKey="val" name="Occurrences" radius={[4, 4, 0, 0]}>
+                        {intentData.map((e, idx) => <Cell key={idx} fill={e.fill} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
 
-        {/* Top Commented Media Table */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
-            <div className="card-title" style={{ margin: 0 }}>Distribution par Contenu</div>
-          </div>
-          <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Média Visuel</th>
-                  <th>Prix</th>
-                  <th>Stock</th>
-                  <th>Couleur</th>
-                  <th>Taille</th>
-                  <th>Livraison</th>
-                  <th>Alertes</th>
-                  <th>Intention</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayMedia.map((m, i) => {
-                  const a = m.analysis || {}
-                  return (
-                    <tr key={m.id}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <img 
-                            src={m.thumbnail_url || m.media_url} 
-                            alt="" 
-                            referrerPolicy="no-referrer"
-                            onError={(e) => {
-                              e.target.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34"><rect width="34" height="34" fill="%231e293b"/><path d="M17 8c-3 0-5 2-5 5s2 5 5 5 5-2 5-5-2-5-5-5zm0 11c-5 0-11 2-11 6v3h22v-3c0-4-6-6-11-6z" fill="%2364748b"/></svg>`
-                            }}
-                            style={{ width: 34, height: 34, borderRadius: 'var(--radius-md)', objectFit: 'cover', border: '1px solid var(--border-color)' }} 
-                          />
-                          <span style={{ fontSize: 13, maxWidth: 180, fontWeight: 500 }} className="truncate">
-                            {m.caption || 'Sans titre'}
-                          </span>
-                        </div>
-                      </td>
-                      <td><span className="badge badge-gray">{a.price_comments_count || 0}</span></td>
-                      <td><span className="badge badge-gray">{a.availability_comments_count || 0}</span></td>
-                      <td><span className="badge badge-gray">{a.color_comments_count || 0}</span></td>
-                      <td><span className="badge badge-gray">{a.size_comments_count || 0}</span></td>
-                      <td><span className="badge badge-gray">{a.delivery_comments_count || 0}</span></td>
-                      <td><span className="badge badge-red">{a.negative_feedback_count || 0}</span></td>
-                      <td>
-                        <div className="score-bar-wrap">
-                          <div className="score-bar-bg" style={{ width: 66 }}>
-                            <div className="score-bar-fill" style={{ width: `${Math.min(((a.final_score || 0) / 100) * 100, 100)}%` }} />
-                          </div>
-                          <strong style={{ fontSize: 13, color: '#3B82F6' }}>{a.final_score || 0}%</strong>
-                        </div>
-                      </td>
+              {/* Radar Chart */}
+              <div className="card fade-in">
+                <div className="card-title">Profil Intention Produit</div>
+                <div className="chart-wrap">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={radarData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                      <PolarGrid stroke="#E6EAF2" />
+                      <PolarAngleAxis dataKey="signal" tick={{ fontSize: 12, fill: '#6B7280' }} />
+                      <Radar name="Intensité" dataKey="A" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.06} strokeWidth={1.5} />
+                      <Tooltip content={<CUSTOM_TOOLTIP />} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* Weekly Trend */}
+            <div className="card fade-in">
+              <div className="card-title">Évolution Tendance Hebdomadaire</div>
+              <div className="chart-wrap" style={{ height: 200 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyData} barGap={4} barSize={6} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                    <YAxis tickLine={false} axisLine={false} />
+                    <Tooltip content={<CUSTOM_TOOLTIP />} />
+                    <Bar dataKey="prix" name="Prix" fill="#3B82F6" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="dispo" name="Stock/Disp" fill="#6B7280" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="livraison" name="Livraison" fill="#9CA3AF" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="plaintes" name="Plaintes" fill="#EF4444" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Top Commented Media Table */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
+                <div className="card-title" style={{ margin: 0 }}>Distribution par Contenu</div>
+              </div>
+              <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Média Visuel</th>
+                      <th>Prix</th>
+                      <th>Stock</th>
+                      <th>Couleur</th>
+                      <th>Taille</th>
+                      <th>Livraison</th>
+                      <th>Alertes</th>
+                      <th>Intention</th>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  </thead>
+                  <tbody>
+                    {displayMedia.map((m, i) => {
+                      const a = m.analysis || {}
+                      return (
+                        <tr key={m.id}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <img 
+                                src={m.thumbnail_url || m.media_url} 
+                                alt="" 
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  e.target.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34"><rect width="34" height="34" fill="%231e293b"/><path d="M17 8c-3 0-5 2-5 5s2 5 5 5 5-2 5-5-2-5-5-5zm0 11c-5 0-11 2-11 6v3h22v-3c0-4-6-6-11-6z" fill="%2364748b"/></svg>`
+                                }}
+                                style={{ width: 34, height: 34, borderRadius: 'var(--radius-md)', objectFit: 'cover', border: '1px solid var(--border-color)' }} 
+                              />
+                              <span style={{ fontSize: 13, maxWidth: 180, fontWeight: 500 }} className="truncate">
+                                {m.caption || 'Sans titre'}
+                              </span>
+                            </div>
+                          </td>
+                          <td><span className="badge badge-gray">{a.price_comments_count || 0}</span></td>
+                          <td><span className="badge badge-gray">{a.availability_comments_count || 0}</span></td>
+                          <td><span className="badge badge-gray">{a.color_comments_count || 0}</span></td>
+                          <td><span className="badge badge-gray">{a.size_comments_count || 0}</span></td>
+                          <td><span className="badge badge-gray">{a.delivery_comments_count || 0}</span></td>
+                          <td><span className="badge badge-red">{a.negative_feedback_count || 0}</span></td>
+                          <td>
+                            <div className="score-bar-wrap">
+                              <div className="score-bar-bg" style={{ width: 66 }}>
+                                <div className="score-bar-fill" style={{ width: `${Math.min(((a.final_score || 0) / 100) * 100, 100)}%` }} />
+                              </div>
+                              <strong style={{ fontSize: 13, color: '#3B82F6' }}>{a.final_score || 0}%</strong>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </>
   )

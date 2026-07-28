@@ -22,6 +22,8 @@ urlpatterns = [
     path('api/core/', include('core.urls')),
     path('api/marketing/', include('marketing.urls')),
     path('api/products/', include('products.urls')),
+    path('api/orders/', include('orders.urls')),
+    path('api/excel-sync/', include('excel_sync.urls')),
 ]
 
 

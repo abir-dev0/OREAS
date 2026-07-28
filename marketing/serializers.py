@@ -4,8 +4,20 @@ from products.models import Product
 from instagram.serializers import BrandSerializer, ProductSerializer
 from marketing.models import (
     MetaAdAccount, ProductTest, MetaAdCreative, 
-    MetaCampaign, MetaAdSet, MetaAd, MetaAdPerformanceInsight
+    MetaCampaign, MetaAdSet, MetaAd, MetaAdPerformanceInsight, MarketingOrder
 )
+
+class MarketingOrderSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
+
+    class Meta:
+        model = MarketingOrder
+        fields = [
+            'id', 'order_id', 'product', 'price', 'cogs',
+            'shopify_status', 'call_center_status', 'delivery_status',
+            'is_returned', 'created_at'
+        ]
+
 
 class MetaAdAccountSerializer(serializers.ModelSerializer):
     brand = BrandSerializer(read_only=True)

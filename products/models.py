@@ -38,3 +38,25 @@ class ShopifyStore(models.Model):
     def __str__(self):
         return f"ShopifyStore {self.shop}"
 
+
+class ShopifyCustomer(models.Model):
+    shopify_customer_id = models.CharField(max_length=255, unique=True)
+    first_name = models.CharField(max_length=255, blank=True)
+    last_name = models.CharField(max_length=255, blank=True)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=100, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    orders_count = models.IntegerField(default=0)
+    total_spent = models.DecimalField(max_digits=12, decimal_places=2, default=0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def full_name(self):
+        name = f"{self.first_name} {self.last_name}".strip()
+        return name or self.email or self.phone or f"Customer #{self.shopify_customer_id}"
+
+    def __str__(self):
+        return f"{self.full_name} ({self.city or 'N/A'})"
+
+

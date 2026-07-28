@@ -667,9 +667,18 @@ export default function Marketing() {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', flexDirection: 'column' }}>
         <Topbar title="Marketing Intelligence" subtitle="Chargement du tableau d'intelligence marketing..." />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 14 }}>
-          <div className="spin" style={{ width: 40, height: 40, border: '3px solid var(--border)', borderTop: '3px solid var(--accent)', borderRadius: '50%' }} />
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>Agrégation des métriques full-funnel...</p>
+        <div className="page-body">
+          <div className="skeleton" style={{ height: 80, borderRadius: 'var(--radius-xl)', marginBottom: 'var(--space-6)' }} />
+          <div className="four-col">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="skeleton" style={{ height: 140, borderRadius: 'var(--radius-xl)' }} />
+            ))}
+          </div>
+          <div className="skeleton" style={{ height: 300, borderRadius: 'var(--radius-xl)', marginTop: 'var(--space-6)' }} />
+          <div className="two-col" style={{ marginTop: 'var(--space-6)' }}>
+            <div className="skeleton" style={{ height: 400, borderRadius: 'var(--radius-xl)' }} />
+            <div className="skeleton" style={{ height: 400, borderRadius: 'var(--radius-xl)' }} />
+          </div>
         </div>
       </div>
     )

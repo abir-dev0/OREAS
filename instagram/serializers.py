@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from core.models import Brand
-from products.models import Product
+from products.models import Product, ShopifyCustomer
 from instagram.models import InstagramAccount, InstagramMedia, InstagramComment, MediaAnalysis, InstagramCompetitor, InstagramCompetitorMedia
 
 class BrandSerializer(serializers.ModelSerializer):
@@ -12,6 +12,16 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'shopify_product_id', 'title', 'handle', 'description', 'price', 'image_url']
+
+class ShopifyCustomerSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(read_only=True)
+    class Meta:
+        model = ShopifyCustomer
+        fields = [
+            'id', 'shopify_customer_id', 'first_name', 'last_name', 'full_name',
+            'email', 'phone', 'city', 'orders_count', 'total_spent', 'created_at'
+        ]
+
 
 class InstagramAccountSerializer(serializers.ModelSerializer):
     brand = BrandSerializer(read_only=True)

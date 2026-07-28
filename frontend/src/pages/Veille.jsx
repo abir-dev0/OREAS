@@ -401,41 +401,49 @@ export default function Veille() {
         </div>
 
         {/* Global Competitor Stats Row */}
-        <div className="four-col">
-          <div className="card text-center" style={{ padding: '32px 20px' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: 8 }}>Concurrents Actifs</div>
-            <div className="kpi-value" style={{ color: 'var(--accent)', fontSize: 32 }}>{competitors.length}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, fontWeight: 500 }}>
-              Audience Cumulative: {formatFollowers(totalFollowers)}
-            </div>
+        {loading ? (
+          <div className="four-col">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="skeleton" style={{ height: 120, borderRadius: 'var(--radius-xl)' }} />
+            ))}
           </div>
+        ) : (
+          <div className="four-col">
+            <div className="card text-center" style={{ padding: '32px 20px' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: 8 }}>Concurrents Actifs</div>
+              <div className="kpi-value" style={{ color: 'var(--accent)', fontSize: 32 }}>{competitors.length}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, fontWeight: 500 }}>
+                Audience Cumulative: {formatFollowers(totalFollowers)}
+              </div>
+            </div>
 
-          <div className="card text-center" style={{ padding: '32px 20px' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: 8 }}>Engagement Moyen</div>
-            <div className="kpi-value" style={{ color: 'var(--text-primary)', fontSize: 32 }}>{avgEngagementRate}%</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, fontWeight: 500 }}>
-              Basé sur {mediaList.length} posts récents
+            <div className="card text-center" style={{ padding: '32px 20px' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: 8 }}>Engagement Moyen</div>
+              <div className="kpi-value" style={{ color: 'var(--text-primary)', fontSize: 32 }}>{avgEngagementRate}%</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, fontWeight: 500 }}>
+                Basé sur {mediaList.length} posts récents
+              </div>
             </div>
-          </div>
 
-          <div className="card text-center" style={{ padding: '32px 20px' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: 8 }}>Meilleur Concurrent</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 12, marginBottom: 8 }}>
-              {bestPost ? `@${bestPost.competitor_username}` : 'None'}
+            <div className="card text-center" style={{ padding: '32px 20px' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: 8 }}>Meilleur Concurrent</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 12, marginBottom: 8 }}>
+                {bestPost ? `@${bestPost.competitor_username}` : 'None'}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                {bestPost ? `${(bestPost.like_count + bestPost.comments_count).toLocaleString('fr-FR')} interactions` : '-'}
+              </div>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
-              {bestPost ? `${(bestPost.like_count + bestPost.comments_count).toLocaleString('fr-FR')} interactions` : '-'}
-            </div>
-          </div>
 
-          <div className="card text-center" style={{ padding: '32px 20px' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: 8 }}>Total des Posts</div>
-            <div className="kpi-value" style={{ color: 'var(--text-primary)', fontSize: 32 }}>{mediaList.length}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, fontWeight: 500 }}>
-              Sur tous les concurrents suivis
+            <div className="card text-center" style={{ padding: '32px 20px' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: 8 }}>Total des Posts</div>
+              <div className="kpi-value" style={{ color: 'var(--text-primary)', fontSize: 32 }}>{mediaList.length}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, fontWeight: 500 }}>
+                Sur tous les concurrents suivis
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Filters and Feed inspiration Section */}
         <div className="page-header" style={{ marginBottom: 8, marginTop: 8 }}>
@@ -531,9 +539,10 @@ export default function Veille() {
 
         {/* Media Grid Feed */}
         {loading ? (
-          <div className="text-center" style={{ padding: '60px 0', color: 'var(--text-muted)' }}>
-            <RefreshCw size={24} className="spin" style={{ marginBottom: 12 }} />
-            <div>Analyse des contenus concurrents en cours...</div>
+          <div className="media-grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="skeleton" style={{ height: 450, borderRadius: 'var(--radius-lg)' }} />
+            ))}
           </div>
         ) : mediaList.length === 0 ? (
           <div className="card text-center" style={{ padding: '80px 20px', borderStyle: 'dashed' }}>

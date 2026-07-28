@@ -309,6 +309,8 @@ export async function triggerSync(accountId) {
   }
 }
 
+
+
 export async function getOAuthConnectUrl(brandSlug, redirectUri) {
   try {
     const r = await api.get('/instagram/oauth/connect/', {
@@ -440,6 +442,41 @@ export async function importCompetitorMedia(id) {
   }
 }
 
+export async function createShopifyProductForCandidate(id) {
+  try {
+    const r = await api.post(`/instagram/competitor-media/${id}/create-shopify-product/`)
+    return r.data
+  } catch (e) {
+    console.warn('API createShopifyProductForCandidate failed:', e.message)
+    return {
+      status: 'success',
+      message: 'Produit Shopify créé avec succès (Mode Démo).',
+      shopify_product: { id: `sh_demo_${id}`, title: 'Produit Shopify Candidate' }
+    }
+  }
+}
+
+export async function syncShopifyProducts() {
+  try {
+    const r = await api.post('/products/sync-products/')
+    return r.data
+  } catch (e) {
+    console.warn('API syncShopifyProducts failed:', e.message)
+    return { status: 'error', message: e.message }
+  }
+}
+
+export async function syncShopifyOrders() {
+  try {
+    const r = await api.post('/products/sync-orders/')
+    return r.data
+  } catch (e) {
+    console.warn('API syncShopifyOrders failed:', e.message)
+    return { status: 'error', message: e.message }
+  }
+}
+
+
 export async function promoteCompetitorMedia(id) {
   try {
     const r = await api.post(`/instagram/competitor-media/${id}/promote-candidate/`)
@@ -555,16 +592,44 @@ export async function analyzeTopCandidatesWithAI(limit = 5) {
 
 export async function getProducts() {
   try {
-    const r = await api.get('/products/')
+    const r = await api.get('/products/items/')
     return r.data.results || r.data
   } catch (e) {
     console.warn('API getProducts failed, using mock:', e.message)
     return [
-      { id: 1, title: 'Robe Lin Beige', handle: 'robe-lin-beige', price: 450.00, shopify_product_id: 'sh_prod_1', image_url: 'https://picsum.photos/seed/robe-lin-beige/100/100' },
-      { id: 2, title: 'Soie Lilas Maxi', handle: 'soie-lilas-maxi', price: 350.00, shopify_product_id: 'sh_prod_2', image_url: 'https://picsum.photos/seed/soie-lilas-maxi/100/100' },
-      { id: 3, title: 'Coton Bio Basic Tee', handle: 'coton-bio-basic-tee', price: 220.00, shopify_product_id: 'sh_prod_3', image_url: 'https://picsum.photos/seed/coton-bio-basic-tee/100/100' },
-      { id: 4, title: 'Satin Black Dress', handle: 'satin-black-dress', price: 380.00, shopify_product_id: 'sh_prod_4', image_url: 'https://picsum.photos/seed/satin-black-dress/100/100' },
-      { id: 5, title: 'Cotton Casual Set', handle: 'cotton-casual-set', price: 250.00, shopify_product_id: 'sh_prod_5', image_url: 'https://picsum.photos/seed/cotton-casual-set/100/100' }
+      { id: 1, title: 'Robe Lin Beige', handle: 'robe-lin-beige', price: 450.00, shopify_product_id: 'sh_prod_1', image_url: 'https://picsum.photos/seed/robe-lin-beige/400/400' },
+      { id: 2, title: 'Soie Lilas Maxi', handle: 'soie-lilas-maxi', price: 350.00, shopify_product_id: 'sh_prod_2', image_url: 'https://picsum.photos/seed/soie-lilas-maxi/400/400' },
+      { id: 3, title: 'Coton Bio Basic Tee', handle: 'coton-bio-basic-tee', price: 220.00, shopify_product_id: 'sh_prod_3', image_url: 'https://picsum.photos/seed/coton-bio-basic-tee/400/400' },
+      { id: 4, title: 'Satin Black Dress', handle: 'satin-black-dress', price: 380.00, shopify_product_id: 'sh_prod_4', image_url: 'https://picsum.photos/seed/satin-black-dress/400/400' },
+      { id: 5, title: 'Cotton Casual Set', handle: 'cotton-casual-set', price: 250.00, shopify_product_id: 'sh_prod_5', image_url: 'https://picsum.photos/seed/cotton-casual-set/400/400' }
+    ]
+  }
+}
+
+export async function getShopifyOrders(params = {}) {
+  try {
+    const r = await api.get('/marketing/orders/', { params })
+    return r.data.results || r.data
+  } catch (e) {
+    console.warn('API getShopifyOrders failed, using mock:', e.message)
+    return [
+      { id: 1, order_id: 'SO-84967-765', shopify_status: 'fulfilled', delivery_status: 'delivered', call_center_status: 'confirmed', price: 450, created_at: new Date(Date.now()-86400000*2).toISOString(), product: { title: 'Robe Lin Beige' } },
+      { id: 2, order_id: 'SO-81990-765', shopify_status: 'cancelled', delivery_status: 'failed', call_center_status: 'cancelled', price: 450, created_at: new Date(Date.now()-86400000*3).toISOString(), product: { title: 'Robe Lin Beige' } },
+      { id: 3, order_id: 'SO-39828-765', shopify_status: 'open', delivery_status: 'out_for_delivery', call_center_status: 'confirmed', price: 350, created_at: new Date(Date.now()-86400000).toISOString(), product: { title: 'Soie Lilas Maxi' } },
+    ]
+  }
+}
+
+export async function getShopifyCustomers(params = {}) {
+  try {
+    const r = await api.get('/products/customers/', { params })
+    return r.data.results || r.data
+  } catch (e) {
+    console.warn('API getShopifyCustomers failed, using mock:', e.message)
+    return [
+      { id: 1, shopify_customer_id: 'c1', full_name: 'Boussaa Khaoula', email: 'khaoula@example.com', city: 'Casablanca', orders_count: 3, total_spent: '897.00' },
+      { id: 2, shopify_customer_id: 'c2', full_name: 'Chaimae Feddi', email: 'chaimae@example.com', city: 'Rabat', orders_count: 2, total_spent: '598.00' },
+      { id: 3, shopify_customer_id: 'c3', full_name: 'Siham -', email: null, city: 'Marrakech', orders_count: 1, total_spent: '299.00' },
     ]
   }
 }
@@ -700,9 +765,14 @@ export async function triggerMarketingSync(accountId) {
 export async function triggerGlobalSync() {
   try {
     const r = await api.post('/core/sync-all/')
+    // Also trigger Shopify products & orders sync
+    syncShopifyProducts().catch(() => {})
+    syncShopifyOrders().catch(() => {})
     return r.data
   } catch (e) {
     console.warn('API triggerGlobalSync failed:', e.message)
+    syncShopifyProducts().catch(() => {})
+    syncShopifyOrders().catch(() => {})
     return { status: 'Global sync scheduled (mock).' }
   }
 }

@@ -2,8 +2,9 @@ import { NavLink } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, Camera, Star, BarChart2,
-  Link2, Settings, Sparkles, Compass, BrainCircuit, Target
+  Link2, Settings, Sparkles, Compass, BrainCircuit, Target, ShoppingBag, FileSpreadsheet
 } from 'lucide-react'
+
 
 const NAV = [
   {
@@ -16,10 +17,12 @@ const NAV = [
   {
     section: 'Sources de Données',
     items: [
-      { to: '/instagram', icon: Camera, label: 'Social Connect' },
-      { to: '/candidats', icon: Star, label: 'Candidats IA' },
-      { to: '/marketing', icon: Target, label: 'Meta Ads' },
-      { to: '/analyses', icon: BarChart2, label: 'Analyses Prédictives' },
+      { to: '/instagram',  icon: Camera,          label: 'Social Connect' },
+      { to: '/candidats',  icon: Star,            label: 'Candidats IA' },
+      { to: '/shopify',    icon: ShoppingBag,     label: 'Shopify Store' },
+      { to: '/excel-sync', icon: FileSpreadsheet, label: 'Sync Excel' },
+      { to: '/marketing',  icon: Target,          label: 'Meta Ads' },
+      { to: '/analyses',   icon: BarChart2,       label: 'Analyses Prédictives' },
     ]
   },
   {

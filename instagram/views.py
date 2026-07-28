@@ -375,3 +375,79 @@ class InstagramCompetitorMediaViewSet(viewsets.ReadOnlyModelViewSet):
             "message": f"Successfully imported competitor post as Runway candidate.",
             "id": media.id
         }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='create-shopify-product')
+    def create_shopify_product(self, request, pk=None):
+        """
+        Publishes an AI Candidate media post directly to Shopify as a draft Product.
+        """
+        comp_media = get_object_or_404(InstagramCompetitorMedia, pk=pk)
+        
+        raw_title = comp_media.caption.split('\n')[0].strip() if comp_media.caption else ""
+        title = (raw_title[:60].strip() or f"Collection Piece @{comp_media.competitor.username}")
+        description = comp_media.caption or f"Discovered by OREAS AI Intelligence from @{comp_media.competitor.username}."
+        image_url = comp_media.thumbnail_url or comp_media.media_url
+        
+        price = "350.00"
+
+        product_payload = {
+            "title": title,
+            "body_html": f"<p>{description}</p><p><em>Source: @{comp_media.competitor.username} via OREAS Intelligence</em></p>",
+            "vendor": "OREAS",
+            "product_type": "Fashion & Apparel",
+            "status": "draft",
+            "variants": [
+                {
+                    "price": price,
+                    "sku": f"OREAS-{comp_media.id}"
+                }
+            ]
+        }
+        if image_url:
+            product_payload["images"] = [{"src": image_url}]
+
+        try:
+            from products.services.shopify_service import ShopifyAdminClient
+            client = ShopifyAdminClient()
+            
+            shop = request.data.get('shop') or getattr(settings, 'SHOPIFY_STORE_URL', '')
+            if shop:
+                from products.models import ShopifyStore
+                from products.services.shopify_oauth import clean_shop_domain
+                clean_shop = clean_shop_domain(shop)
+                store_obj = ShopifyStore.objects.filter(shop=clean_shop).first()
+                if store_obj and store_obj.is_valid():
+                    client = ShopifyAdminClient(store_url=clean_shop, access_token=store_obj.get_access_token())
+
+            shopify_product = client.create_product(product_payload)
+            
+            # Save or link in local Product model
+            from core.models import Brand
+            from products.models import Product
+            brand, _ = Brand.objects.get_or_create(slug='oreas', defaults={'name': 'OREAS'})
+            
+            local_product, _ = Product.objects.update_or_create(
+                shopify_product_id=str(shopify_product.get('id', '')),
+                defaults={
+                    'brand': brand,
+                    'title': shopify_product.get('title', title),
+                    'handle': shopify_product.get('handle', ''),
+                    'description': description,
+                    'price': float(price),
+                    'image_url': image_url
+                }
+            )
+
+            return Response({
+                "status": "success",
+                "message": f"Produit Shopify créé avec succès (ID Shopify: {shopify_product.get('id')}).",
+                "shopify_product": shopify_product,
+                "local_product_id": local_product.id
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": f"Erreur lors de la création du produit Shopify: {str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+

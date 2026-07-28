@@ -9,6 +9,8 @@ import Connexion from './pages/Connexion'
 import Parametres from './pages/Parametres'
 import Veille from './pages/Veille'
 import Marketing from './pages/Marketing'
+import Shopify from './pages/Shopify'
+import ExcelSync from './pages/ExcelSync'
 
 export default function App() {
   return (
@@ -25,6 +27,8 @@ export default function App() {
             <Route path="/connexion"  element={<Connexion />} />
             <Route path="/parametres" element={<Parametres />} />
             <Route path="/veille"     element={<Veille />} />
+            <Route path="/shopify"    element={<Shopify />} />
+            <Route path="/excel-sync" element={<ExcelSync />} />
           </Routes>
         </div>
       </div>

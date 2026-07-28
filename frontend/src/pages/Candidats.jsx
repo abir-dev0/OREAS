@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Star, ExternalLink, ShoppingBag, Check, ChevronDown, ChevronUp, Target, Lightbulb, AlertCircle, Play, Bookmark, BarChart3, Clock, Scissors, Package, TrendingUp, Award, Zap, RefreshCw, Filter, Sparkles, Trash2 } from 'lucide-react'
 import Topbar from '../components/Topbar'
-import { getCandidates, promoteCompetitorMedia, removeCompetitorMediaFromCandidates, analyzeCandidateWithAI } from '../services/api'
+import { getCandidates, promoteCompetitorMedia, removeCompetitorMediaFromCandidates, analyzeCandidateWithAI, createShopifyProductForCandidate } from '../services/api'
 
 export default function Candidats() {
   const [candidates, setCandidates] = useState([])
@@ -9,6 +9,8 @@ export default function Candidats() {
   const [expandedCards, setExpandedCards] = useState({})
   const [filterStatus, setFilterStatus] = useState('all')
   const [analyzingIds, setAnalyzingIds] = useState({})
+  const [syncingShopify, setSyncingShopify] = useState({})
+  const [shopifySuccessMsg, setShopifySuccessMsg] = useState({})
 
   useEffect(() => {
     getCandidates().then(res => {
@@ -57,6 +59,24 @@ export default function Candidats() {
       console.error('Background AI analyze failed:', e)
     } finally {
       setAnalyzingIds(prev => ({ ...prev, [mediaId]: false }))
+    }
+  }
+
+  const handleShopifySync = async (candidateId) => {
+    setSyncingShopify(prev => ({ ...prev, [candidateId]: true }))
+    try {
+      const res = await createShopifyProductForCandidate(candidateId)
+      setShopifySuccessMsg(prev => ({
+        ...prev,
+        [candidateId]: res.message || 'Produit créé sur Shopify !'
+      }))
+      setTimeout(() => {
+        setShopifySuccessMsg(prev => ({ ...prev, [candidateId]: null }))
+      }, 5000)
+    } catch (err) {
+      console.error('Error syncing to Shopify:', err)
+    } finally {
+      setSyncingShopify(prev => ({ ...prev, [candidateId]: false }))
     }
   }
 
@@ -264,9 +284,10 @@ export default function Candidats() {
 
         {/* Product Cards */}
         {loading ? (
-          <div className="text-center" style={{ padding: '60px 0', color: '#9A9A9A' }}>
-            <RefreshCw size={24} className="spin" style={{ marginBottom: 12 }} />
-            <div>Chargement des fiches produits...</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="skeleton" style={{ height: 500, borderRadius: 'var(--radius-lg)' }} />
+            ))}
           </div>
         ) : candidates.length === 0 ? (
           <div className="card text-center" style={{ padding: '80px 20px', borderStyle: 'dashed' }}>
@@ -703,17 +724,39 @@ export default function Candidats() {
                         Voir Original
                       </button>
                       <button
+                        onClick={() => handleShopifySync(candidate.id)}
+                        disabled={syncingShopify[candidate.id]}
                         className="btn btn-primary btn-sm"
                         style={{
                           flex: 1,
-                          minWidth: '100px',
+                          minWidth: '110px',
                           gap: 6,
                           borderRadius: 'var(--radius-md)'
                         }}
                       >
-                        <ShoppingBag size={12} />
-                        Shopify Sync
+                        {syncingShopify[candidate.id] ? (
+                          <RefreshCw size={12} className="spin" />
+                        ) : (
+                          <ShoppingBag size={12} />
+                        )}
+                        {syncingShopify[candidate.id] ? 'Création...' : 'Créer Produit Shopify'}
                       </button>
+                      {shopifySuccessMsg[candidate.id] && (
+                        <div style={{
+                          width: '100%',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          color: 'var(--success)',
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          padding: '6px 10px',
+                          borderRadius: 'var(--radius-md)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6
+                        }}>
+                          <Check size={12} /> {shopifySuccessMsg[candidate.id]}
+                        </div>
+                      )}
                       <button
                         className="btn btn-sm"
                         style={{

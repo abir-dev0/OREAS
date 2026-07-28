@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     'products',
     'instagram',
     'marketing',
+    'orders',
+    'excel_sync',
 ]
 
 MIDDLEWARE = [
@@ -274,6 +276,23 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_TASK_ALWAYS_EAGER = True  # Run tasks inline synchronously in dev mode so a separate worker is not required
+
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'renew-onedrive-webhook-every-2-days': {
+        'task': 'excel_sync.tasks.renew_onedrive_webhook',
+        'schedule': crontab(hour=3, minute=0, day_of_week='*/2'),  # Every 2 days at 3:00 AM
+    },
+    'refresh-onedrive-token-every-50-mins': {
+        'task': 'excel_sync.tasks.refresh_onedrive_tokens',
+        'schedule': crontab(minute='*/50'),  # Every 50 minutes
+    },
+}
+
+# Microsoft Graph Integration Settings
+MS_CLIENT_ID = os.getenv('MS_CLIENT_ID', '')
+MS_REDIRECT_URI = os.getenv('MS_REDIRECT_URI', 'http://localhost:8000/api/excel-sync/oauth/callback/')
 
 
 # Meta / Instagram Graph API Credentials

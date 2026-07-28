@@ -17,6 +17,7 @@ export default function Overview() {
   const [candidates, setCandidates] = useState([])
   const [mediaList, setMediaList] = useState([])
   const [kpis, setKpis] = useState(MOCK.kpis)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     getAccount().then(acc => {
@@ -81,6 +82,7 @@ export default function Overview() {
           setKpis(MOCK.kpis)
           setCandidates(MOCK.media.slice(0, 5))
         }
+        setLoading(false)
       }).catch(err => {
         console.warn("Failed to load real database stats:", err)
         if (isRealConnected) {
@@ -101,11 +103,13 @@ export default function Overview() {
           setKpis(MOCK.kpis)
           setCandidates(MOCK.media.slice(0, 5))
         }
+        setLoading(false)
       })
     }).catch(err => {
       console.warn("Failed to retrieve account:", err)
       setKpis(MOCK.kpis)
       setCandidates(MOCK.media.slice(0, 5))
+      setLoading(false)
     })
   }, [])
 
@@ -170,7 +174,22 @@ export default function Overview() {
         syncing={syncing}
       />
       <div className="page-body">
-        <HeroSummary account={account} kpis={k} syncing={syncing} mediaList={mediaList} />
+        {loading ? (
+          <>
+            <div className="kpi-grid">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="skeleton" style={{ height: 140, borderRadius: 'var(--radius-xl)' }} />
+              ))}
+            </div>
+            <div className="col-8-4">
+              <div className="skeleton" style={{ height: 320, borderRadius: 'var(--radius-xl)' }} />
+              <div className="skeleton" style={{ height: 320, borderRadius: 'var(--radius-xl)' }} />
+            </div>
+            <div className="skeleton" style={{ height: 400, borderRadius: 'var(--radius-xl)' }} />
+          </>
+        ) : (
+          <>
+            <HeroSummary account={account} kpis={k} syncing={syncing} mediaList={mediaList} />
 
         <div className="kpi-grid">
           <KPITile gradient label="Candidats IA" value={k.candidates} change="+2 cette semaine" />
@@ -304,6 +323,8 @@ export default function Overview() {
             </table>
           </div>
         </div>
+          </>
+        )}
       </div>
     </>
   )

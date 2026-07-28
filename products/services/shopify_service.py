@@ -44,6 +44,21 @@ class ShopifyAdminClient:
                 logger.error(f"Shopify Response Body: {response.text}")
             raise e
 
+    def _post(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if not self.is_configured():
+            raise ValueError("Shopify credentials not properly configured in settings / .env")
+
+        url = f"https://{self.store_url}/admin/api/{API_VERSION}/{path}"
+        try:
+            response = self.session.post(url, json=payload, timeout=20)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            logger.error(f"Shopify API POST Error on {path}: {e}")
+            if 'response' in locals() and response is not None:
+                logger.error(f"Shopify Response Body: {response.text}")
+            raise e
+
     def get_shop_info(self) -> Dict[str, Any]:
         """Fetch shop details to verify credentials and store info."""
         data = self._get("shop.json")
@@ -58,3 +73,15 @@ class ShopifyAdminClient:
         """Fetch all orders from Shopify."""
         data = self._get("orders.json", params={"status": status, "limit": limit})
         return data.get("orders", [])
+
+    def fetch_customers(self, limit: int = 250) -> List[Dict[str, Any]]:
+        """Fetch all customers from Shopify."""
+        data = self._get("customers.json", params={"limit": limit})
+        return data.get("customers", [])
+
+    def create_product(self, product_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new product on Shopify."""
+        data = self._post("products.json", payload={"product": product_data})
+        return data.get("product", {})
+
+
